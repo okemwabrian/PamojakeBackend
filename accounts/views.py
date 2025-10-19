@@ -1,0 +1,185 @@
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import User
+from .serializers import UserSerializer, UserRegistrationSerializer, LoginSerializer
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register(request):
+    serializer = UserRegistrationSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        
+        # Send registration pending email
+        try:
+            from .email_templates import send_registration_pending_email
+            send_registration_pending_email(user)
+        except Exception as e:
+            print(f"Failed to send registration email: {e}")
+        
+        return Response({
+            'message': 'Registration successful! Please wait for admin activation. Check your email for details.',
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            }
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login(request):
+    serializer = LoginSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.validated_data['user']
+        refresh = RefreshToken.for_user(user)
+        
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'phone': user.phone,
+            'address': user.address,
+            'city': user.city,
+            'state': user.state,
+            'shares_owned': user.shares_owned,
+            'available_shares': user.available_shares,
+            'is_member': user.is_member,
+            'membership_date': user.membership_date,
+            'is_staff': user.is_staff,
+            'is_activated': user.is_activated,
+            'date_joined': user.date_joined
+        }
+        
+        response_data = {
+            'token': str(refresh.access_token),
+            'user': user_data
+        }
+        
+        # Check activation status
+        if not user.is_activated:
+            response_data.update({
+                'requires_activation': True,
+                'message': 'Account inactive. Pay activation fee to continue.'
+            })
+        
+        return Response(response_data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    return Response({'message': 'Successfully logged out'})
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def user_profile(request):
+    if request.method == 'GET':
+        return Response({
+            'id': request.user.id,
+            'username': request.user.username,
+            'email': request.user.email,
+            'first_name': request.user.first_name,
+            'last_name': request.user.last_name,
+            'phone': request.user.phone,
+            'address': request.user.address,
+            'city': request.user.city,
+            'state': request.user.state,
+            'shares_owned': request.user.shares_owned,
+            'available_shares': request.user.available_shares,
+            'is_staff': request.user.is_staff
+        })
+    
+    elif request.method == 'PUT':
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            user = serializer.save()
+            # Mark profile as completed if basic info is provided
+            if user.first_name and user.last_name and user.phone and user.address:
+                user.profile_completed = True
+                user.save()
+            
+            return Response({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'phone': user.phone,
+                'address': user.address,
+                'city': user.city,
+                'state': user.state,
+                'profile_completed': user.profile_completed,
+                'is_staff': user.is_staff
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password = request.data.get('new_password')
+    
+    if not user.check_password(old_password):
+        return Response({'error': 'Current password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    if len(new_password) < 6:
+        return Response({'error': 'New password must be at least 6 characters'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    user.set_password(new_password)
+    user.save()
+    
+    return Response({'message': 'Password changed successfully'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def dashboard_stats(request):
+    from django.db import models
+    from applications.models import Application
+    from payments.models import Payment
+    from shares.models import SharePurchase
+    from claims.models import Claim
+    from documents.models import Document
+    
+    user = request.user
+    
+    stats = {
+        'total_applications': Application.objects.filter(user=user).count(),
+        'total_payments': Payment.objects.filter(user=user).count(),
+        'total_shares': SharePurchase.objects.filter(user=user, status='approved').aggregate(
+            total=models.Sum('quantity'))['total'] or 0,
+        'total_claims': Claim.objects.filter(user=user).count(),
+        'total_documents': Document.objects.filter(user=user).count(),
+        'pending_claims': Claim.objects.filter(user=user, status='pending').count(),
+        'pending_shares': SharePurchase.objects.filter(user=user, status='pending').count(),
+        'activation_status': user.is_activated,
+        'membership_status': user.is_member,
+    }
+    
+    return Response(stats)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_status(request):
+    try:
+        from .models import UserProfile
+        profile = UserProfile.objects.get(user=request.user)
+        is_activated = profile.is_activated
+    except:
+        is_activated = False
+    
+    return Response({
+        'id': request.user.id,
+        'username': request.user.username,
+        'email': request.user.email,
+        'is_activated': is_activated
+    })
