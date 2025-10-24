@@ -19,7 +19,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse
+from django.utils import timezone
 from accounts.views import user_status
+from applications.urls import submit_single_application
+from payments.urls import submit_activation_fee
 
 def api_root(request):
     return JsonResponse({
@@ -28,11 +31,24 @@ def api_root(request):
         'status': 'active'
     })
 
+def test_connection(request):
+    return JsonResponse({
+        'message': 'Backend connection successful',
+        'status': 'connected',
+        'timestamp': timezone.now().isoformat()
+    })
+
 urlpatterns = [
     path('', api_root, name='api_root'),
+    path('test-connection/', test_connection, name='test-connection'),
     path('admin/', admin.site.urls),
     path('api/auth/user/', user_status, name='user-status'),
     path('api/auth/', include('accounts.urls')),
+    
+    # Required endpoints for frontend
+    path('api/applications/single/submit/', submit_single_application, name='submit-single-application'),
+    path('api/payments/activation/submit/', submit_activation_fee, name='submit-activation-fee'),
+    
     path('api/applications/', include('applications.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/shares/', include('shares.urls')),
