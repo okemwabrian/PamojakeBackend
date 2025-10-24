@@ -183,3 +183,8 @@ def user_status(request):
         'email': request.user.email,
         'is_activated': is_activated
     })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_endpoint(request):
+    return Response({'message': 'API is working', 'status': 'success'})

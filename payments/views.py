@@ -22,26 +22,33 @@ class PaymentViewSet(viewsets.ModelViewSet):
         logger.info(f"Request data keys: {list(request.data.keys())}")
         logger.info(f"Request files: {list(request.FILES.keys())}")
         
-        print("=== PAYMENT SUBMISSION DEBUG ===")
-        print(f"Data keys: {list(request.data.keys())}")
-        print(f"Files: {list(request.FILES.keys())}")
-        print(f"Content-Type: {request.content_type}")
-        
-        # Check for required file
-        if 'payment_proof' not in request.FILES:
-            print("ERROR: payment_proof file missing")
-            return Response(
-                {"payment_proof": ["Payment proof file is required"]}, 
-                status=400
-            )
-        
         try:
+            # Validate required fields
+            required_fields = ['payment_type', 'amount', 'payment_method']
+            missing_fields = [field for field in required_fields if not request.data.get(field)]
+            
+            if missing_fields:
+                return Response(
+                    {"error": f"Missing required fields: {', '.join(missing_fields)}"}, 
+                    status=400
+                )
+            
+            # Check for required file
+            if 'payment_proof' not in request.FILES:
+                return Response(
+                    {"payment_proof": ["Payment proof file is required"]}, 
+                    status=400
+                )
+            
             serializer = PaymentCreateSerializer(data=request.data)
             if serializer.is_valid():
                 payment = serializer.save(user=request.user)
                 return Response(PaymentSerializer(payment).data, status=201)
-            return Response(serializer.errors, status=400)
+            else:
+                logger.error(f"Payment validation errors: {serializer.errors}")
+                return Response(serializer.errors, status=400)
         except Exception as e:
+            logger.error(f"Payment creation error: {str(e)}")
             return Response({'error': str(e)}, status=400)
 
     @action(detail=False, methods=['post'])
