@@ -41,6 +41,7 @@ def test_connection(request):
 
 urlpatterns = [
     path('', api_root, name='api_root'),
+    path('api/', api_root, name='api_root_path'),  # Fix for /api/ 404 errors
     path('test-connection/', test_connection, name='test-connection'),
     path('admin/', admin.site.urls),
     path('api/auth/user/', user_status, name='user-status'),
