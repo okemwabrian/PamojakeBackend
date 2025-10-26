@@ -192,6 +192,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://pamojake.netlify.app",
     "http://localhost:3000",
     "https://okemwabrianny.pythonanywhere.com",
+    "https://Okemwabrianny.pythonanywhere.com",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
@@ -219,7 +220,12 @@ CORS_ALLOW_HEADERS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://pamojake.netlify.app",
     "https://okemwabrianny.pythonanywhere.com",
+    "https://Okemwabrianny.pythonanywhere.com",
 ]
+
+# Disable CSRF for API endpoints
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 
 # CORS headers for file uploads
 CORS_ALLOW_HEADERS = [
