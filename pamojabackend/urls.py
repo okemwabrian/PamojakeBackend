@@ -23,6 +23,7 @@ from django.utils import timezone
 from accounts.views import user_status
 from applications.urls import submit_single_application
 from payments.urls import submit_activation_fee
+from shares.urls import buy_shares
 
 def api_root(request):
     return JsonResponse({
@@ -48,6 +49,7 @@ urlpatterns = [
     # Required endpoints for frontend
     path('api/applications/single/submit/', submit_single_application, name='submit-single-application'),
     path('api/payments/activation/submit/', submit_activation_fee, name='submit-activation-fee'),
+    path('api/shares/buy/', buy_shares, name='buy-shares'),
     
     path('api/applications/', include('applications.urls')),
     path('api/payments/', include('payments.urls')),

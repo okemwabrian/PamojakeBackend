@@ -5,6 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
 from .models import ShareTransaction, SharePurchase
 from .serializers import ShareTransactionSerializer, SharePurchaseSerializer
 from accounts.email_templates import send_payment_notification_to_admin
@@ -165,3 +169,29 @@ class ShareTransactionViewSet(viewsets.ModelViewSet):
             return Response({'message': 'Share rejected successfully'})
         except ShareTransaction.DoesNotExist:
             return Response({'error': 'Share not found'}, status=404)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def buy_shares(request):
+    try:
+        data = json.loads(request.body)
+        amount = data.get('amount')
+        payment_method = data.get('payment_method')
+        shares_purchased = data.get('shares_purchased')
+        
+        # Create share purchase record
+        share_purchase = SharePurchase.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            quantity=shares_purchased,
+            total_amount=amount,
+            payment_method=payment_method,
+            status='pending'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Share purchase submitted successfully',
+            'purchase_id': share_purchase.id
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
