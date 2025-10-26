@@ -188,3 +188,18 @@ def user_status(request):
 @permission_classes([AllowAny])
 def test_endpoint(request):
     return Response({'message': 'API is working', 'status': 'success'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user(request):
+    """Simple user endpoint for frontend compatibility"""
+    return Response({
+        'id': request.user.id,
+        'username': request.user.username,
+        'email': request.user.email,
+        'first_name': request.user.first_name,
+        'last_name': request.user.last_name,
+        'is_staff': request.user.is_staff,
+        'is_activated': getattr(request.user, 'is_activated', False),
+        'is_member': getattr(request.user, 'is_member', False)
+    })
