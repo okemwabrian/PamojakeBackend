@@ -229,6 +229,109 @@ def get_user_shares(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_user_dashboard(request):
+    """Get complete user dashboard data"""
+    user = request.user
+    
+    # Get user profile
+    try:
+        from .models import UserProfile
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        profile_data = {
+            'membership_type': getattr(profile, 'membership_type', 'none'),
+            'membership_status': 'active' if getattr(user, 'is_activated', False) else 'inactive',
+            'shares_owned': getattr(user, 'shares_owned', 0),
+            'phone': getattr(user, 'phone', ''),
+            'address': getattr(user, 'address', ''),
+        }
+    except:
+        profile_data = {
+            'membership_type': getattr(user, 'membership_type', 'none'),
+            'membership_status': 'active' if getattr(user, 'is_activated', False) else 'inactive',
+            'shares_owned': getattr(user, 'shares_owned', 0),
+            'phone': getattr(user, 'phone', ''),
+            'address': getattr(user, 'address', ''),
+        }
+    
+    # Get applications
+    try:
+        from applications.models import Application
+        applications = Application.objects.filter(user=user).order_by('-created_at')
+        applications_data = [{
+            'id': app.id,
+            'membership_type': getattr(app, 'membership_type', getattr(app, 'type', 'single')),
+            'status': app.status,
+            'created_at': app.created_at.isoformat(),
+            'admin_notes': getattr(app, 'admin_notes', ''),
+        } for app in applications]
+    except:
+        applications_data = []
+    
+    # Get claims
+    try:
+        from claims.models import Claim
+        claims = Claim.objects.filter(user=user).order_by('-created_at')
+        claims_data = [{
+            'id': claim.id,
+            'title': getattr(claim, 'claim_type', 'General Claim'),
+            'status': claim.status,
+            'amount_requested': str(claim.amount_requested),
+            'created_at': claim.created_at.isoformat(),
+        } for claim in claims]
+    except:
+        claims_data = []
+    
+    # Get payments
+    try:
+        from payments.models import Payment
+        payments = Payment.objects.filter(user=user).order_by('-created_at')
+        payments_data = [{
+            'id': payment.id,
+            'payment_type': payment.payment_type,
+            'amount': str(payment.amount),
+            'status': payment.status,
+            'created_at': payment.created_at.isoformat(),
+        } for payment in payments]
+    except:
+        payments_data = []
+    
+    # Get shares
+    try:
+        from shares.models import SharePurchase
+        shares = SharePurchase.objects.filter(user=user).order_by('-created_at')
+        shares_data = [{
+            'id': share.id,
+            'shares_requested': getattr(share, 'quantity', 0),
+            'amount': str(getattr(share, 'total_amount', 0)),
+            'status': share.status,
+            'created_at': share.created_at.isoformat(),
+        } for share in shares]
+    except:
+        shares_data = []
+    
+    return Response({
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        },
+        'profile': profile_data,
+        'applications': applications_data,
+        'claims': claims_data,
+        'payments': payments_data,
+        'shares': shares_data,
+        'stats': {
+            'total_applications': len(applications_data),
+            'total_claims': len(claims_data),
+            'total_payments': len(payments_data),
+            'total_shares': len(shares_data),
+        }
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_user(request):
     """Simple user endpoint for frontend compatibility"""
     user = request.user

@@ -55,6 +55,7 @@ urlpatterns = [
     # User data endpoints
     path('api/user/claims/', lambda request: __import__('accounts.views', fromlist=['get_user_claims']).get_user_claims(request), name='api-user-claims'),
     path('api/user/shares/', lambda request: __import__('accounts.views', fromlist=['get_user_shares']).get_user_shares(request), name='api-user-shares'),
+    path('api/user/dashboard/', lambda request: __import__('accounts.views', fromlist=['get_user_dashboard']).get_user_dashboard(request), name='api-user-dashboard'),
     
     # Membership endpoints
     path('api/membership/apply/single/', lambda request: __import__('applications.urls', fromlist=['submit_single_application']).submit_single_application(request), name='api-membership-single'),
@@ -62,6 +63,9 @@ urlpatterns = [
     
     # Documents endpoint
     path('api/documents/public/', lambda request: __import__('documents.views', fromlist=['get_public_documents']).get_public_documents(request), name='api-public-documents'),
+    
+    # Claims endpoint
+    path('api/claims/submit/', lambda request: __import__('claims.urls', fromlist=['submit_claim']).submit_claim(request), name='api-claims-submit'),
     
     path('api/applications/', include('applications.urls')),
     path('api/payments/', include('payments.urls')),
