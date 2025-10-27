@@ -191,15 +191,59 @@ def test_endpoint(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_user_claims(request):
+    """Get user's claims"""
+    from claims.models import Claim
+    claims = Claim.objects.filter(user=request.user).order_by('-created_at')
+    claims_data = [{
+        'id': claim.id,
+        'claim_type': getattr(claim, 'claim_type', 'general'),
+        'member_name': getattr(claim, 'member_name', ''),
+        'amount_requested': str(claim.amount_requested),
+        'amount_approved': str(claim.amount_approved) if claim.amount_approved else None,
+        'status': claim.status,
+        'description': getattr(claim, 'description', ''),
+        'admin_notes': getattr(claim, 'admin_notes', ''),
+        'created_at': claim.created_at.isoformat(),
+    } for claim in claims]
+    
+    return Response({'claims': claims_data})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_shares(request):
+    """Get user's share purchases"""
+    from shares.models import SharePurchase
+    purchases = SharePurchase.objects.filter(user=request.user).order_by('-created_at')
+    purchases_data = [{
+        'id': purchase.id,
+        'quantity': getattr(purchase, 'quantity', 0),
+        'total_amount': str(getattr(purchase, 'total_amount', 0)),
+        'payment_method': getattr(purchase, 'payment_method', ''),
+        'status': purchase.status,
+        'admin_notes': getattr(purchase, 'admin_notes', ''),
+        'created_at': purchase.created_at.isoformat(),
+    } for purchase in purchases]
+    
+    return Response({'purchases': purchases_data})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_user(request):
     """Simple user endpoint for frontend compatibility"""
+    user = request.user
     return Response({
-        'id': request.user.id,
-        'username': request.user.username,
-        'email': request.user.email,
-        'first_name': request.user.first_name,
-        'last_name': request.user.last_name,
-        'is_staff': request.user.is_staff,
-        'is_activated': getattr(request.user, 'is_activated', False),
-        'is_member': getattr(request.user, 'is_member', False)
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'is_staff': user.is_staff,
+        'is_activated': getattr(user, 'is_activated', False),
+        'is_member': getattr(user, 'is_member', False),
+        'membership_type': getattr(user, 'membership_type', 'none'),
+        'membership_status': 'active' if getattr(user, 'is_activated', False) else 'inactive',
+        'shares_owned': getattr(user, 'shares_owned', 0),
+        'phone': getattr(user, 'phone', ''),
+        'address': getattr(user, 'address', '')
     })

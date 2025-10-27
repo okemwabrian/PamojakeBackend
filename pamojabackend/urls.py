@@ -52,6 +52,10 @@ urlpatterns = [
     path('api/payments/activation/submit/', submit_activation_fee, name='submit-activation-fee'),
     path('api/shares/buy/', buy_shares, name='buy-shares'),
     
+    # User data endpoints
+    path('api/user/claims/', lambda request: __import__('accounts.views', fromlist=['get_user_claims']).get_user_claims(request), name='api-user-claims'),
+    path('api/user/shares/', lambda request: __import__('accounts.views', fromlist=['get_user_shares']).get_user_shares(request), name='api-user-shares'),
+    
     path('api/applications/', include('applications.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/shares/', include('shares.urls')),

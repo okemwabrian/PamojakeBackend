@@ -16,5 +16,10 @@ urlpatterns = [
     path('test/', views.test_endpoint, name='test_endpoint'),
     path('change-password/', views.change_password, name='change_password'),
     path('dashboard-stats/', views.dashboard_stats, name='dashboard_stats'),
+    
+    # User data endpoints
+    path('claims/', views.get_user_claims, name='get_user_claims'),
+    path('shares/', views.get_user_shares, name='get_user_shares'),
+    
     path('', include(router.urls)),
 ]
