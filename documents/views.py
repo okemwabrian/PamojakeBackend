@@ -1,10 +1,11 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import JsonResponse
 from .models import Document
 from .serializers import DocumentSerializer
 
@@ -66,3 +67,19 @@ class DocumentViewSet(viewsets.ModelViewSet):
         document.admin_notes = request.data.get('admin_notes', '')
         document.save()
         return Response({'status': 'rejected'})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_public_documents(request):
+    """Get all public documents for frontend"""
+    documents = Document.objects.all().order_by('document_type', 'name')
+    documents_data = [{
+        'id': doc.id,
+        'name': doc.name,
+        'description': getattr(doc, 'description', ''),
+        'document_type': doc.document_type,
+        'file_url': doc.file.url if doc.file else None,
+        'created_at': doc.created_at.isoformat(),
+    } for doc in documents]
+    
+    return JsonResponse({'documents': documents_data})

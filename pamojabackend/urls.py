@@ -56,6 +56,13 @@ urlpatterns = [
     path('api/user/claims/', lambda request: __import__('accounts.views', fromlist=['get_user_claims']).get_user_claims(request), name='api-user-claims'),
     path('api/user/shares/', lambda request: __import__('accounts.views', fromlist=['get_user_shares']).get_user_shares(request), name='api-user-shares'),
     
+    # Membership endpoints
+    path('api/membership/apply/single/', lambda request: __import__('applications.urls', fromlist=['submit_single_application']).submit_single_application(request), name='api-membership-single'),
+    path('api/membership/apply/double/', lambda request: __import__('applications.urls', fromlist=['submit_double_application']).submit_double_application(request), name='api-membership-double'),
+    
+    # Documents endpoint
+    path('api/documents/public/', lambda request: __import__('documents.views', fromlist=['get_public_documents']).get_public_documents(request), name='api-public-documents'),
+    
     path('api/applications/', include('applications.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/shares/', include('shares.urls')),

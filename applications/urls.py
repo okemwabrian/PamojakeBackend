@@ -21,10 +21,14 @@ def submit_single_application(request):
     data['membership_type'] = 'single'
     serializer = ApplicationSerializer(data=data)
     if serializer.is_valid():
-        serializer.save()
+        application = serializer.save()
         return Response({
-            'message': 'Single family application submitted successfully!',
-            'application_id': serializer.data['id']
+            'success': True,
+            'message': 'Single family membership application submitted successfully!',
+            'application_id': application.id,
+            'redirect_to_payment': True,
+            'payment_amount': 50.00,
+            'membership_type': 'single'
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -35,10 +39,14 @@ def submit_double_application(request):
     data['membership_type'] = 'double'
     serializer = ApplicationSerializer(data=data)
     if serializer.is_valid():
-        serializer.save()
+        application = serializer.save()
         return Response({
-            'message': 'Double family application submitted successfully!',
-            'application_id': serializer.data['id']
+            'success': True,
+            'message': 'Double family membership application submitted successfully!',
+            'application_id': application.id,
+            'redirect_to_payment': True,
+            'payment_amount': 100.00,
+            'membership_type': 'double'
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
