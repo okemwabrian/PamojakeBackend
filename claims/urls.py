@@ -25,5 +25,8 @@ router.register(r'', views.ClaimViewSet, basename='claim')
 
 urlpatterns = [
     path('submit/', submit_claim, name='submit-claim'),
+    path('<int:claim_id>/', views.get_claim_details, name='claim-details'),
+    path('<int:claim_id>/approve/', views.approve_claim_with_amount, name='approve-claim'),
+    path('<int:claim_id>/reject/', views.reject_claim_with_reason, name='reject-claim'),
     path('', include(router.urls)),
 ]

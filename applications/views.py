@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -111,6 +111,66 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             pass
         
         return Response({'status': 'approved'})
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_application_details(request, application_id):
+    """Get detailed application information"""
+    try:
+        # Admin can view any application, users can only view their own
+        if request.user.is_staff:
+            application = Application.objects.get(id=application_id)
+        else:
+            application = Application.objects.get(id=application_id, user=request.user)
+        
+        application_data = {
+            'id': application.id,
+            'membership_type': application.membership_type,
+            'status': application.status,
+            'personal_info': {
+                'first_name': application.first_name,
+                'middle_name': application.middle_name,
+                'last_name': application.last_name,
+                'email': application.email,
+                'phone': application.phone,
+                'date_of_birth': application.date_of_birth.isoformat() if application.date_of_birth else None,
+                'id_number': application.id_number,
+            },
+            'contact_info': {
+                'address': application.address,
+                'city': application.city,
+                'state': application.state,
+                'zip_code': application.zip_code,
+            },
+            'emergency_contact': {
+                'name': application.emergency_name,
+                'phone': application.emergency_phone,
+                'relationship': application.emergency_relationship,
+            },
+            'spouse_info': {
+                'first_name': application.spouse_first_name,
+                'last_name': application.spouse_last_name,
+                'email': application.spouse_email,
+                'phone': application.spouse_phone,
+                'date_of_birth': application.spouse_date_of_birth.isoformat() if application.spouse_date_of_birth else None,
+                'id_number': application.spouse_id_number,
+            } if application.membership_type == 'double' else None,
+            'children_info': application.children_info,
+            'documents': {
+                'id_document': application.id_document.url if application.id_document else None,
+                'spouse_id_document': application.spouse_id_document.url if application.spouse_id_document else None,
+            },
+            'admin_notes': application.admin_notes,
+            'created_at': application.created_at.isoformat(),
+            'updated_at': application.updated_at.isoformat(),
+        }
+        
+        return Response({'application': application_data})
+        
+    except Application.DoesNotExist:
+        return Response({'error': 'Application not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
     
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):

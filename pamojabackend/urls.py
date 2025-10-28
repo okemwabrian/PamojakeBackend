@@ -61,11 +61,17 @@ urlpatterns = [
     path('api/membership/apply/single/', lambda request: __import__('applications.urls', fromlist=['submit_single_application']).submit_single_application(request), name='api-membership-single'),
     path('api/membership/apply/double/', lambda request: __import__('applications.urls', fromlist=['submit_double_application']).submit_double_application(request), name='api-membership-double'),
     
+    # Application details
+    path('api/applications/<int:application_id>/details/', lambda request, application_id: __import__('applications.views', fromlist=['get_application_details']).get_application_details(request, application_id), name='api-application-details'),
+    
     # Documents endpoint
     path('api/documents/public/', lambda request: __import__('documents.views', fromlist=['get_public_documents']).get_public_documents(request), name='api-public-documents'),
     
     # Claims endpoints
     path('api/claims/submit/', lambda request: __import__('claims.urls', fromlist=['submit_claim']).submit_claim(request), name='api-claims-submit'),
+    path('api/claims/<int:claim_id>/', lambda request, claim_id: __import__('claims.views', fromlist=['get_claim_details']).get_claim_details(request, claim_id), name='api-claim-details'),
+    path('api/claims/<int:claim_id>/approve/', lambda request, claim_id: __import__('claims.views', fromlist=['approve_claim_with_amount']).approve_claim_with_amount(request, claim_id), name='api-approve-claim'),
+    path('api/claims/<int:claim_id>/reject/', lambda request, claim_id: __import__('claims.views', fromlist=['reject_claim_with_reason']).reject_claim_with_reason(request, claim_id), name='api-reject-claim'),
     
     # User profile endpoints
     path('api/users/me/', lambda request: __import__('accounts.views', fromlist=['get_user']).get_user(request), name='api-users-me'),

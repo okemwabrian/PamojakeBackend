@@ -54,6 +54,7 @@ urlpatterns = [
     # New endpoints for frontend
     path('single/submit/', submit_single_application, name='submit-single-application'),
     path('double/submit/', submit_double_application, name='submit-double-application'),
+    path('<int:application_id>/details/', views.get_application_details, name='application-details'),
     
     # Existing endpoints
     path('single/', single_family_application, name='single-family-application'),
