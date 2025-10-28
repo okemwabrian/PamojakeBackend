@@ -22,13 +22,29 @@ def submit_single_application(request):
     serializer = ApplicationSerializer(data=data)
     if serializer.is_valid():
         application = serializer.save()
+        # Send confirmation email
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            send_mail(
+                subject='Pamoja Single Membership Application Received',
+                message=f'Your single family membership application has been received. Application ID: {application.id}. Our team will review it shortly.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.data.get('email')],
+                fail_silently=True,
+            )
+        except:
+            pass  # Continue even if email fails
+        
         return Response({
             'success': True,
-            'message': 'Single family membership application submitted successfully!',
+            'message': 'Single family membership application submitted successfully! Check your email for confirmation.',
             'application_id': application.id,
             'redirect_to_payment': True,
             'payment_amount': 50.00,
-            'membership_type': 'single'
+            'membership_type': 'single',
+            'redirect_to': '/dashboard'
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -40,13 +56,29 @@ def submit_double_application(request):
     serializer = ApplicationSerializer(data=data)
     if serializer.is_valid():
         application = serializer.save()
+        # Send confirmation email
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            send_mail(
+                subject='Pamoja Double Membership Application Received',
+                message=f'Your double family membership application has been received. Application ID: {application.id}. Our team will review it shortly.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.data.get('email')],
+                fail_silently=True,
+            )
+        except:
+            pass  # Continue even if email fails
+        
         return Response({
             'success': True,
-            'message': 'Double family membership application submitted successfully!',
+            'message': 'Double family membership application submitted successfully! Check your email for confirmation.',
             'application_id': application.id,
             'redirect_to_payment': True,
             'payment_amount': 100.00,
-            'membership_type': 'double'
+            'membership_type': 'double',
+            'redirect_to': '/dashboard'
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

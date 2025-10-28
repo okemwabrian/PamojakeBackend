@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/applications/single/submit/', submit_single_application, name='submit-single-application'),
     path('api/payments/activation/submit/', submit_activation_fee, name='submit-activation-fee'),
     path('api/payments/list/', lambda request: __import__('payments.urls', fromlist=['get_user_payments']).get_user_payments(request), name='api-payments-list'),
+    path('api/payments/<int:payment_id>/receipt/', lambda request, payment_id: __import__('payments.urls', fromlist=['print_payment_receipt']).print_payment_receipt(request, payment_id), name='api-payment-receipt'),
     path('api/shares/buy/', buy_shares, name='buy-shares'),
     
     # User data endpoints
