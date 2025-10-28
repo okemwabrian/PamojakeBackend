@@ -50,6 +50,7 @@ urlpatterns = [
     # Required endpoints for frontend
     path('api/applications/single/submit/', submit_single_application, name='submit-single-application'),
     path('api/payments/activation/submit/', submit_activation_fee, name='submit-activation-fee'),
+    path('api/payments/list/', lambda request: __import__('payments.urls', fromlist=['get_user_payments']).get_user_payments(request), name='api-payments-list'),
     path('api/shares/buy/', buy_shares, name='buy-shares'),
     
     # User data endpoints

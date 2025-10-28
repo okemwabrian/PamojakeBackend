@@ -25,9 +25,18 @@ PAYMENT_STATUS = [
 
 PAYMENT_METHODS = [
     ('paypal', 'PayPal'),
+    ('venmo', 'Venmo'),
+    ('zelle', 'Zelle'),
+    ('debit_card', 'Debit Card'),
+    ('credit_card', 'Credit Card'),
     ('mpesa', 'M-Pesa'),
+    ('mobile_money', 'Mobile Money'),
     ('bank', 'Bank Transfer'),
+    ('bank_transfer', 'Bank Transfer'),
+    ('cash', 'Cash'),
+    ('check', 'Check'),
     ('system', 'System Transaction'),
+    ('other', 'Other'),
 ]
 
 class Payment(models.Model):
