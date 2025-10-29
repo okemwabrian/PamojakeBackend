@@ -13,8 +13,13 @@ class ShareTransaction(models.Model):
     
     PAYMENT_METHODS = [
         ('paypal', 'PayPal'),
+        ('venmo', 'Venmo'),
+        ('zelle', 'Zelle'),
+        ('bank_transfer', 'Bank Transfer'),
+        ('mobile_money', 'Mobile Money'),
         ('mpesa', 'M-Pesa'),
-        ('bank', 'Bank Transfer'),
+        ('cash', 'Cash'),
+        ('other', 'Other'),
     ]
     
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -27,6 +32,7 @@ class ShareTransaction(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=100, unique=True, default=uuid.uuid4)
     admin_notes = models.TextField(blank=True)
+    notes = models.TextField(blank=True)  # Additional notes field
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -26,11 +26,10 @@ def submit_activation_fee(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_user_payments(request):
     """Get user payments in simple format for frontend"""
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
     
     payments = Payment.objects.filter(user=request.user).order_by('-created_at')
     payments_data = [{
@@ -45,13 +44,12 @@ def get_user_payments(request):
         'updated_at': payment.updated_at.isoformat(),
     } for payment in payments]
     
-    return JsonResponse({'payments': payments_data})
+    return Response({'payments': payments_data})
 
-@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def print_payment_receipt(request, payment_id):
     """Generate payment receipt"""
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
     
     try:
         payment = Payment.objects.get(id=payment_id, user=request.user)
@@ -71,15 +69,15 @@ def print_payment_receipt(request, payment_id):
             'description': payment.description,
         }
         
-        return JsonResponse({
+        return Response({
             'success': True,
             'receipt': receipt_data
         })
         
     except Payment.DoesNotExist:
-        return JsonResponse({'error': 'Payment not found'}, status=404)
+        return Response({'error': 'Payment not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=400)
 
 router = DefaultRouter()
 router.register(r'', views.PaymentViewSet, basename='payment')

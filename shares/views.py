@@ -24,6 +24,12 @@ class ShareViewSet(viewsets.ModelViewSet):
             return SharePurchase.objects.all().order_by('-created_at')
         return SharePurchase.objects.filter(user=self.request.user).order_by('-created_at')
     
+    def list(self, request, *args, **kwargs):
+        """Override list to return consistent format"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'shares': serializer.data})
+    
     def create(self, request, *args, **kwargs):
         try:
             data = request.data.copy()
@@ -116,8 +122,14 @@ class ShareTransactionViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         if getattr(self.request.user, 'is_staff', False):
-            return ShareTransaction.objects.all()
-        return ShareTransaction.objects.filter(user=self.request.user)
+            return ShareTransaction.objects.all().order_by('-created_at')
+        return ShareTransaction.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        """Override list to return consistent format"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'transactions': serializer.data})
     
     def perform_create(self, serializer):
         share_transaction = serializer.save(user=self.request.user)
@@ -170,28 +182,45 @@ class ShareTransactionViewSet(viewsets.ModelViewSet):
         except ShareTransaction.DoesNotExist:
             return Response({'error': 'Share not found'}, status=404)
 
-@csrf_exempt
-@require_http_methods(["POST"])
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def buy_shares(request):
     try:
-        data = json.loads(request.body)
-        amount = data.get('amount')
-        payment_method = data.get('payment_method')
-        shares_purchased = data.get('shares_purchased')
+        # Get data from frontend
+        shares_purchased = request.data.get('shares_purchased')
+        amount = request.data.get('amount')
+        payment_method = request.data.get('payment_method')
+        notes = request.data.get('notes', '')
+        
+        # Validate required fields
+        if not shares_purchased or not amount or not payment_method:
+            return Response({
+                'error': 'Missing required fields: shares_purchased, amount, payment_method'
+            }, status=400)
         
         # Create share purchase record
         share_purchase = SharePurchase.objects.create(
-            user=request.user if request.user.is_authenticated else None,
-            quantity=shares_purchased,
-            total_amount=amount,
+            user=request.user,
+            buyer_name=request.user.get_full_name() or request.user.username,
+            quantity=int(shares_purchased),
+            total_amount=float(amount),
             payment_method=payment_method,
+            admin_notes=notes,
             status='pending'
         )
         
-        return JsonResponse({
+        return Response({
             'success': True,
-            'message': 'Share purchase submitted successfully',
-            'purchase_id': share_purchase.id
-        })
+            'message': 'Share purchase request submitted successfully!',
+            'purchase_id': share_purchase.id,
+            'shares_requested': share_purchase.quantity,
+            'amount': str(share_purchase.total_amount),
+            'status': share_purchase.status
+        }, status=201)
+        
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=400)

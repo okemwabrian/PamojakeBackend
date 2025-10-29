@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.contrib.auth import get_user_model
 from django.db import models
 from applications.models import Application
@@ -14,6 +14,7 @@ from claims.serializers import ClaimSerializer
 from payments.serializers import PaymentSerializer
 from contact.serializers import ContactMessageSerializer
 from accounts.serializers import UserSerializer
+from .models import UserActivity
 from accounts.email_templates import (
     send_activation_email, send_deactivation_email, send_password_reset_email,
     send_low_shares_warning, send_membership_status_email, send_claim_status_email,
@@ -178,27 +179,95 @@ class AdminApplicationViewSet(viewsets.ModelViewSet):
                     'full_name': getattr(app.user, 'full_name', ''),
                     'phone': getattr(app.user, 'phone_number', ''),
                 },
-                'application_type': app.type,
+                'membership_type': app.membership_type or app.type,
+                'status': app.status,
+                'created_at': app.created_at.isoformat(),
+                'updated_at': app.updated_at.isoformat(),
+                
+                # Complete Personal Details
                 'personal_details': {
                     'first_name': app.first_name,
                     'middle_name': app.middle_name,
                     'last_name': app.last_name,
                     'email': app.email,
-                    'phone': app.phone_main or app.phone,
+                    'confirm_email': app.confirm_email,
+                    'phone': app.phone,
+                    'phone_main': app.phone_main,
+                    'date_of_birth': app.date_of_birth.isoformat() if app.date_of_birth else None,
+                    'id_number': app.id_number,
+                },
+                
+                # Complete Address Details
+                'address_details': {
+                    'address': app.address,
                     'address_1': app.address_1,
                     'address_2': app.address_2,
                     'city': app.city,
+                    'state': app.state,
                     'state_province': app.state_province,
+                    'zip_code': app.zip_code,
                     'zip_postal': app.zip_postal,
                 },
-                'spouse_details': {
-                    'spouse': app.spouse,
-                    'spouse_phone': app.spouse_phone,
+                
+                # Emergency Contact
+                'emergency_contact': {
+                    'name': app.emergency_name,
+                    'phone': app.emergency_phone,
+                    'relationship': app.emergency_relationship,
                 },
-                'payment_proof': app.id_document.url if app.id_document else None,
-                'payment_reference': app.payment_reference,
-                'created_at': app.created_at,
-                'status': app.status
+                
+                # Spouse Details (for double membership)
+                'spouse_details': {
+                    'first_name': app.spouse_first_name,
+                    'last_name': app.spouse_last_name,
+                    'email': app.spouse_email,
+                    'phone': app.spouse_phone,
+                    'date_of_birth': app.spouse_date_of_birth.isoformat() if app.spouse_date_of_birth else None,
+                    'id_number': app.spouse_id_number,
+                    'spouse': app.spouse,
+                    'authorized_rep': app.authorized_rep,
+                },
+                
+                # Family Information
+                'family_info': {
+                    'children_info': app.children_info if app.children_info else [],
+                    'child_1': app.child_1,
+                    'child_2': app.child_2,
+                    'child_3': app.child_3,
+                    'child_4': app.child_4,
+                    'child_5': app.child_5,
+                    'parent_1': app.parent_1,
+                    'parent_2': app.parent_2,
+                    'spouse_parent_1': app.spouse_parent_1,
+                    'spouse_parent_2': app.spouse_parent_2,
+                    'sibling_1': app.sibling_1,
+                    'sibling_2': app.sibling_2,
+                    'sibling_3': app.sibling_3,
+                },
+                
+                # Documents
+                'documents': {
+                    'id_document': app.id_document.url if app.id_document else None,
+                    'spouse_id_document': app.spouse_id_document.url if app.spouse_id_document else None,
+                    'payment_proof': app.payment_proof.url if app.payment_proof else None,
+                },
+                
+                # Payment Information
+                'payment_info': {
+                    'payment_amount': str(app.payment_amount),
+                    'payment_reference': app.payment_reference,
+                    'activation_fee_paid': app.activation_fee_paid,
+                    'activation_fee_amount': str(app.activation_fee_amount),
+                    'payment_verified': app.payment_verified,
+                },
+                
+                # Agreements
+                'agreements': {
+                    'declaration_accepted': app.declaration_accepted,
+                    'constitution_agreed': app.constitution_agreed,
+                },
+                
+                'admin_notes': app.admin_notes,
             }
             return Response(data)
         except Application.DoesNotExist:

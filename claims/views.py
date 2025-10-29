@@ -21,8 +21,14 @@ class ClaimViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         if self.request.user.is_staff:
-            return Claim.objects.all()
-        return Claim.objects.filter(user=self.request.user)
+            return Claim.objects.all().order_by('-created_at')
+        return Claim.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        """Override list to return consistent format"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'claims': serializer.data})
     
     def create(self, request, *args, **kwargs):
         try:
@@ -102,23 +108,22 @@ class ClaimViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(claims, many=True)
         return Response(serializer.data)
 
-@csrf_exempt
-@require_http_methods(["POST"])
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def approve_claim_with_amount(request, claim_id):
     """Approve claim with specific amount"""
     if not request.user.is_staff:
-        return JsonResponse({'error': 'Admin access required'}, status=403)
+        return Response({'error': 'Admin access required'}, status=403)
     
     try:
         claim = Claim.objects.get(id=claim_id)
         
         # Get approval data from request
-        data = json.loads(request.body)
-        amount_approved = data.get('amount_approved')
-        admin_notes = data.get('admin_notes', '')
+        amount_approved = request.data.get('amount_approved')
+        admin_notes = request.data.get('admin_notes', '')
         
         if not amount_approved:
-            return JsonResponse({'error': 'Amount approved is required'}, status=400)
+            return Response({'error': 'Amount approved is required'}, status=400)
         
         # Update claim
         claim.status = 'approved'
@@ -126,7 +131,7 @@ def approve_claim_with_amount(request, claim_id):
         claim.admin_notes = admin_notes
         claim.save()
         
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': f'Claim approved with amount ${amount_approved}',
             'claim': {
@@ -138,30 +143,29 @@ def approve_claim_with_amount(request, claim_id):
         })
         
     except Claim.DoesNotExist:
-        return JsonResponse({'error': 'Claim not found'}, status=404)
+        return Response({'error': 'Claim not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=400)
 
-@csrf_exempt
-@require_http_methods(["POST"])
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def reject_claim_with_reason(request, claim_id):
     """Reject claim with reason"""
     if not request.user.is_staff:
-        return JsonResponse({'error': 'Admin access required'}, status=403)
+        return Response({'error': 'Admin access required'}, status=403)
     
     try:
         claim = Claim.objects.get(id=claim_id)
         
         # Get rejection data from request
-        data = json.loads(request.body)
-        admin_notes = data.get('admin_notes', 'Claim rejected')
+        admin_notes = request.data.get('admin_notes', 'Claim rejected')
         
         # Update claim
         claim.status = 'rejected'
         claim.admin_notes = admin_notes
         claim.save()
         
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'Claim rejected',
             'claim': {
@@ -172,15 +176,14 @@ def reject_claim_with_reason(request, claim_id):
         })
         
     except Claim.DoesNotExist:
-        return JsonResponse({'error': 'Claim not found'}, status=404)
+        return Response({'error': 'Claim not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=400)
 
-@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def get_claim_details(request, claim_id):
     """Get detailed claim information"""
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'Authentication required'}, status=401)
     
     try:
         # Admin can view any claim, users can only view their own
@@ -205,9 +208,9 @@ def get_claim_details(request, claim_id):
             'updated_at': claim.updated_at.isoformat(),
         }
         
-        return JsonResponse({'claim': claim_data})
+        return Response({'claim': claim_data})
         
     except Claim.DoesNotExist:
-        return JsonResponse({'error': 'Claim not found'}, status=404)
+        return Response({'error': 'Claim not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        return Response({'error': str(e)}, status=400)

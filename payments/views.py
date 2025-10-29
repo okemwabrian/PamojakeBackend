@@ -17,6 +17,12 @@ class PaymentViewSet(viewsets.ModelViewSet):
             return Payment.objects.all().order_by('-created_at')
         return Payment.objects.filter(user=self.request.user).order_by('-created_at')
     
+    def list(self, request, *args, **kwargs):
+        """Override list to return consistent format with custom endpoint"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'payments': serializer.data})
+    
     def create(self, request, *args, **kwargs):
         # Debug logging
         logger.info(f"Request data keys: {list(request.data.keys())}")

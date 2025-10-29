@@ -18,11 +18,17 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         if self.request.user.is_staff:
-            return Application.objects.all()
+            return Application.objects.all().order_by('-created_at')
         # Only active users can see applications
         if not self.request.user.is_active:
             return Application.objects.none()
-        return Application.objects.filter(user=self.request.user)
+        return Application.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        """Override list to return consistent format"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'applications': serializer.data})
     
     def create(self, request, *args, **kwargs):
         # Debug logging
